@@ -51,3 +51,111 @@ model ActivityLog {
 
   @@map("activity_logs")
 }
+
+// ─── Modul Karyawan ───────────────────────────────────────────────
+
+enum JenisKelamin {
+  LAKI_LAKI
+  PEREMPUAN
+}
+
+enum SistemUpah {
+  HARIAN
+  BULANAN
+}
+
+enum Departemen {
+  TOKO
+  PROYEK
+}
+
+enum StatusAbsensi {
+  HADIR    // 8 jam penuh
+  CUTI     // tidak masuk, alasan tercatat
+  PARSIAL  // masuk sebagian, jam_kerja 1–7
+}
+
+enum MetodePembayaran {
+  TUNAI
+  TRANSFER
+}
+
+enum JenisHutang {
+  HUTANG
+  BAYAR
+}
+
+model Karyawan {
+  id           String       @id
+  nama         String
+  jenisKelamin JenisKelamin
+  jabatan      String?
+  nomorHp      String?
+  noRekening   String?
+  alamat       String?
+  sistemUpah   SistemUpah
+  gajiPokok    Decimal      @db.Decimal(15, 2)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  riwayatKerja RiwayatKerja[]
+  absensi      Absensi[]
+  pinjaman     Pinjaman[]
+  hutang       HutangKaryawan[]
+
+  @@map("karyawan")
+}
+
+model RiwayatKerja {
+  id            String     @id @default(cuid())
+  karyawanId    String
+  tanggalMulai  DateTime   @db.Date
+  tanggalKeluar DateTime?  @db.Date
+  departemen    Departemen
+
+  karyawan Karyawan @relation(fields: [karyawanId], references: [id], onDelete: Cascade)
+
+  @@map("riwayat_kerja")
+}
+
+model Absensi {
+  id                   String        @id @default(cuid())
+  karyawanId           String
+  tanggal              DateTime      @db.Date
+  status               StatusAbsensi
+  jamKerja             Int?          // wajib isi 1–7 jika PARSIAL; HADIR=8, CUTI=0 dihitung otomatis
+  alasanKetidakhadiran String?
+  telatMenit           Int?
+
+  karyawan Karyawan @relation(fields: [karyawanId], references: [id], onDelete: Cascade)
+
+  @@unique([karyawanId, tanggal])
+  @@map("absensi")
+}
+
+model Pinjaman {
+  id               String           @id @default(cuid())
+  karyawanId       String
+  jumlah           Decimal          @db.Decimal(15, 2)
+  alasanPeminjaman String?
+  tanggal          DateTime         @db.Date
+  metodePembayaran MetodePembayaran
+
+  karyawan Karyawan @relation(fields: [karyawanId], references: [id], onDelete: Cascade)
+
+  @@map("pinjaman")
+}
+
+model HutangKaryawan {
+  id         String      @id @default(cuid())
+  tanggal    DateTime    @db.Date
+  karyawanId String
+  jenis      JenisHutang
+  jumlah     Decimal     @db.Decimal(15, 2)
+  keterangan String?
+  refNoNota  String?
+
+  karyawan Karyawan @relation(fields: [karyawanId], references: [id], onDelete: Cascade)
+
+  @@map("hutang_karyawan")
+}
