@@ -36,6 +36,16 @@ tags:
     description: Upload dan manajemen file
   - name: Dashboard
     description: Statistik dan log aktivitas
+  - name: Karyawan
+    description: Data induk karyawan (status & departemen dihitung otomatis)
+  - name: Riwayat Kerja
+    description: Riwayat masuk/keluar karyawan — sumber status & departemen aktif
+  - name: Absensi
+    description: Pencatatan kehadiran harian (Hadir / Cuti / Parsial)
+  - name: Pinjaman
+    description: Pinjaman karyawan yang dipotong dari gaji
+  - name: Hutang
+    description: Ledger hutang karyawan (jenis Hutang / Bayar)
 
 components:
   securitySchemes:
@@ -161,6 +171,148 @@ components:
         createdAt:
           type: string
           format: date-time
+
+    Karyawan:
+      type: object
+      properties:
+        id:
+          type: string
+          example: KRY001
+        nama:
+          type: string
+          example: Budi Santoso
+        jenisKelamin:
+          type: string
+          enum: [LAKI_LAKI, PEREMPUAN]
+        jabatan:
+          type: string
+          nullable: true
+          example: Kasir
+        nomorHp:
+          type: string
+          nullable: true
+          example: "081234567890"
+        noRekening:
+          type: string
+          nullable: true
+          example: "1234567890"
+        alamat:
+          type: string
+          nullable: true
+        sistemUpah:
+          type: string
+          enum: [HARIAN, BULANAN]
+        gajiPokok:
+          type: number
+          example: 150000
+        statusBekerja:
+          type: string
+          enum: [AKTIF, NON_AKTIF]
+          description: Dihitung otomatis dari riwayat kerja terbaru
+        departemen:
+          type: string
+          enum: [TOKO, PROYEK]
+          nullable: true
+          description: Dihitung otomatis dari riwayat kerja aktif
+        hutang:
+          type: number
+          example: 50000
+          description: Saldo hutang bersih (Hutang - Bayar)
+
+    RiwayatKerja:
+      type: object
+      properties:
+        id:
+          type: string
+          example: clx1234abcd
+        karyawanId:
+          type: string
+          example: KRY001
+        tanggalMulai:
+          type: string
+          format: date
+          example: "2024-01-01"
+        tanggalKeluar:
+          type: string
+          format: date
+          nullable: true
+          example: null
+        departemen:
+          type: string
+          enum: [TOKO, PROYEK]
+
+    Absensi:
+      type: object
+      properties:
+        id:
+          type: string
+        karyawanId:
+          type: string
+          example: KRY001
+        tanggal:
+          type: string
+          format: date
+          example: "2024-01-02"
+        status:
+          type: string
+          enum: [HADIR, CUTI, PARSIAL]
+        jamKerja:
+          type: integer
+          example: 8
+          description: "HADIR=8, CUTI=0, PARSIAL=1-7"
+        alasanKetidakhadiran:
+          type: string
+          nullable: true
+        telatMenit:
+          type: integer
+          nullable: true
+          example: 0
+
+    Pinjaman:
+      type: object
+      properties:
+        id:
+          type: string
+        karyawanId:
+          type: string
+          example: KRY001
+        jumlah:
+          type: number
+          example: 500000
+        alasanPeminjaman:
+          type: string
+          nullable: true
+        tanggal:
+          type: string
+          format: date
+        metodePembayaran:
+          type: string
+          enum: [TUNAI, TRANSFER]
+
+    HutangKaryawan:
+      type: object
+      properties:
+        id:
+          type: string
+        tanggal:
+          type: string
+          format: date
+        karyawanId:
+          type: string
+          example: KRY001
+        jenis:
+          type: string
+          enum: [HUTANG, BAYAR]
+        jumlah:
+          type: number
+          example: 200000
+        keterangan:
+          type: string
+          nullable: true
+        refNoNota:
+          type: string
+          nullable: true
+          example: INV-001
 
   responses:
     Unauthorized:
@@ -735,3 +887,536 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+
+  # ─── Karyawan ────────────────────────────────────────────────────
+
+  /karyawan:
+    get:
+      tags: [Karyawan]
+      summary: Daftar semua karyawan
+      parameters:
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: limit, schema: { type: integer, default: 10 } }
+        - { in: query, name: search, schema: { type: string }, description: Cari nama atau ID }
+        - { in: query, name: status, schema: { type: string, enum: [AKTIF, NON_AKTIF] } }
+        - { in: query, name: departemen, schema: { type: string, enum: [TOKO, PROYEK] } }
+        - { in: query, name: sistemUpah, schema: { type: string, enum: [HARIAN, BULANAN] } }
+      responses:
+        '200':
+          description: Data karyawan berhasil diambil
+          content:
+            application/json:
+              example:
+                success: true
+                message: Data karyawan berhasil diambil
+                data:
+                  - id: KRY001
+                    nama: Budi Santoso
+                    jenisKelamin: LAKI_LAKI
+                    jabatan: Kasir
+                    sistemUpah: HARIAN
+                    gajiPokok: 150000
+                    statusBekerja: AKTIF
+                    departemen: TOKO
+                    hutang: 50000
+                pagination: { total: 1, page: 1, limit: 10, totalPages: 1 }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Karyawan]
+      summary: Tambah karyawan baru
+      description: ID otomatis digenerate (KRY001, KRY002, ...). Role **ADMIN** atau **MANAGER**.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nama, jenisKelamin, sistemUpah, gajiPokok]
+              properties:
+                nama:
+                  type: string
+                  example: Budi Santoso
+                jenisKelamin:
+                  type: string
+                  enum: [LAKI_LAKI, PEREMPUAN]
+                jabatan:
+                  type: string
+                  example: Kasir
+                nomorHp:
+                  type: string
+                  example: "081234567890"
+                noRekening:
+                  type: string
+                  example: "1234567890"
+                alamat:
+                  type: string
+                sistemUpah:
+                  type: string
+                  enum: [HARIAN, BULANAN]
+                gajiPokok:
+                  type: number
+                  example: 150000
+      responses:
+        '201':
+          description: Karyawan berhasil ditambahkan
+          content:
+            application/json:
+              example:
+                success: true
+                message: Karyawan berhasil ditambahkan
+                data: { id: KRY001, nama: Budi Santoso, jenisKelamin: LAKI_LAKI, sistemUpah: HARIAN, gajiPokok: 150000 }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /karyawan/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string }, example: KRY001 }
+
+    get:
+      tags: [Karyawan]
+      summary: Detail karyawan beserta status & hutang
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Karyawan'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Karyawan]
+      summary: Update data karyawan
+      description: Role **ADMIN** atau **MANAGER**.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nama: { type: string }
+                jenisKelamin: { type: string, enum: [LAKI_LAKI, PEREMPUAN] }
+                jabatan: { type: string }
+                nomorHp: { type: string }
+                noRekening: { type: string }
+                alamat: { type: string }
+                sistemUpah: { type: string, enum: [HARIAN, BULANAN] }
+                gajiPokok: { type: number }
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Karyawan]
+      summary: Hapus karyawan (beserta seluruh data terkait)
+      description: Role **ADMIN** saja.
+      responses:
+        '200':
+          description: Karyawan berhasil dihapus
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─── Riwayat Kerja ───────────────────────────────────────────────
+
+  /riwayat-kerja/karyawan/{karyawanId}:
+    get:
+      tags: [Riwayat Kerja]
+      summary: Semua riwayat kerja satu karyawan
+      parameters:
+        - { in: path, name: karyawanId, required: true, schema: { type: string }, example: KRY001 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  - id: clxabc
+                    karyawanId: KRY001
+                    tanggalMulai: "2024-01-01"
+                    tanggalKeluar: null
+                    departemen: TOKO
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /riwayat-kerja:
+    post:
+      tags: [Riwayat Kerja]
+      summary: Catat karyawan masuk kerja
+      description: |
+        Gagal jika karyawan masih punya riwayat aktif (`tanggalKeluar` kosong).
+        Untuk re-hire: set `tanggalKeluar` dulu lalu buat riwayat baru.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [karyawanId, tanggalMulai, departemen]
+              properties:
+                karyawanId: { type: string, example: KRY001 }
+                tanggalMulai: { type: string, format: date, example: "2024-01-01" }
+                departemen: { type: string, enum: [TOKO, PROYEK] }
+      responses:
+        '201':
+          description: Riwayat berhasil dicatat
+        '400':
+          description: Karyawan masih memiliki riwayat aktif
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /riwayat-kerja/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+
+    put:
+      tags: [Riwayat Kerja]
+      summary: Update riwayat (termasuk set tanggal keluar)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tanggalMulai: { type: string, format: date }
+                tanggalKeluar: { type: string, format: date, nullable: true, example: "2024-06-30" }
+                departemen: { type: string, enum: [TOKO, PROYEK] }
+      responses:
+        '200':
+          description: Riwayat berhasil diperbarui
+        '400':
+          description: Tanggal keluar sebelum tanggal mulai
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Riwayat Kerja]
+      summary: Hapus riwayat kerja
+      description: Role **ADMIN** saja.
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ─── Absensi ─────────────────────────────────────────────────────
+
+  /absensi:
+    get:
+      tags: [Absensi]
+      summary: Daftar absensi
+      parameters:
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: limit, schema: { type: integer, default: 20 } }
+        - { in: query, name: karyawanId, schema: { type: string } }
+        - { in: query, name: bulan, schema: { type: integer }, example: 1 }
+        - { in: query, name: tahun, schema: { type: integer }, example: 2024 }
+        - { in: query, name: status, schema: { type: string, enum: [HADIR, CUTI, PARSIAL] } }
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Absensi]
+      summary: Catat absensi
+      description: |
+        - `HADIR` → jamKerja otomatis 8, telatMenit opsional
+        - `CUTI` → jamKerja otomatis 0, alasanKetidakhadiran disarankan
+        - `PARSIAL` → jamKerja **wajib** diisi 1–7
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [karyawanId, tanggal, status]
+              properties:
+                karyawanId: { type: string, example: KRY001 }
+                tanggal: { type: string, format: date, example: "2024-01-02" }
+                status: { type: string, enum: [HADIR, CUTI, PARSIAL] }
+                jamKerja: { type: integer, minimum: 1, maximum: 7, description: Wajib jika PARSIAL }
+                alasanKetidakhadiran: { type: string }
+                telatMenit: { type: integer, minimum: 0 }
+      responses:
+        '201':
+          description: Absensi berhasil dicatat
+        '400':
+          description: Validasi gagal (misal jamKerja kosong saat PARSIAL, atau tanggal sudah ada)
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /absensi/rekap/{karyawanId}:
+    get:
+      tags: [Absensi]
+      summary: Rekap absensi bulanan satu karyawan
+      parameters:
+        - { in: path, name: karyawanId, required: true, schema: { type: string }, example: KRY001 }
+        - { in: query, name: bulan, required: true, schema: { type: integer }, example: 1 }
+        - { in: query, name: tahun, required: true, schema: { type: integer }, example: 2024 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  totalHadir: 20
+                  totalCuti: 2
+                  totalParsial: 1
+                  totalJamKerja: 172
+                  totalTelatMenit: 30
+                  detail: []
+        '400':
+          description: Parameter bulan dan tahun wajib diisi
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /absensi/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+
+    put:
+      tags: [Absensi]
+      summary: Update absensi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [HADIR, CUTI, PARSIAL] }
+                jamKerja: { type: integer, minimum: 1, maximum: 7 }
+                alasanKetidakhadiran: { type: string }
+                telatMenit: { type: integer }
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Absensi]
+      summary: Hapus absensi
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ─── Pinjaman ────────────────────────────────────────────────────
+
+  /pinjaman:
+    get:
+      tags: [Pinjaman]
+      summary: Daftar pinjaman
+      description: Role **ADMIN** atau **MANAGER**.
+      parameters:
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: limit, schema: { type: integer, default: 10 } }
+        - { in: query, name: karyawanId, schema: { type: string } }
+        - { in: query, name: metodePembayaran, schema: { type: string, enum: [TUNAI, TRANSFER] } }
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [Pinjaman]
+      summary: Catat pinjaman karyawan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [karyawanId, jumlah, tanggal, metodePembayaran]
+              properties:
+                karyawanId: { type: string, example: KRY001 }
+                jumlah: { type: number, example: 500000 }
+                alasanPeminjaman: { type: string }
+                tanggal: { type: string, format: date, example: "2024-01-10" }
+                metodePembayaran: { type: string, enum: [TUNAI, TRANSFER] }
+      responses:
+        '201':
+          description: Pinjaman berhasil dicatat
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /pinjaman/karyawan/{karyawanId}:
+    get:
+      tags: [Pinjaman]
+      summary: Semua pinjaman + total satu karyawan
+      parameters:
+        - { in: path, name: karyawanId, required: true, schema: { type: string }, example: KRY001 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  totalPinjaman: 500000
+                  data: []
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /pinjaman/{id}:
+    delete:
+      tags: [Pinjaman]
+      summary: Hapus pinjaman
+      description: Role **ADMIN** saja.
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─── Hutang ──────────────────────────────────────────────────────
+
+  /hutang:
+    get:
+      tags: [Hutang]
+      summary: Daftar semua transaksi hutang
+      description: Role **ADMIN** atau **MANAGER**.
+      parameters:
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: limit, schema: { type: integer, default: 10 } }
+        - { in: query, name: karyawanId, schema: { type: string } }
+        - { in: query, name: jenis, schema: { type: string, enum: [HUTANG, BAYAR] } }
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [Hutang]
+      summary: Tambah hutang atau catat pembayaran
+      description: |
+        Gunakan `jenis: HUTANG` untuk menambah hutang baru, `jenis: BAYAR` untuk mencatat pembayaran.
+        Pembayaran tidak bisa melebihi saldo hutang yang tersisa.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tanggal, karyawanId, jenis, jumlah]
+              properties:
+                tanggal: { type: string, format: date, example: "2024-01-05" }
+                karyawanId: { type: string, example: KRY001 }
+                jenis: { type: string, enum: [HUTANG, BAYAR] }
+                jumlah: { type: number, example: 200000 }
+                keterangan: { type: string, example: Beli semen }
+                refNoNota: { type: string, example: INV-001 }
+      responses:
+        '201':
+          description: Berhasil dicatat
+        '400':
+          description: Jumlah bayar melebihi sisa hutang
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /hutang/karyawan/{karyawanId}:
+    get:
+      tags: [Hutang]
+      summary: Saldo + riwayat hutang satu karyawan
+      parameters:
+        - { in: path, name: karyawanId, required: true, schema: { type: string }, example: KRY001 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  karyawan: { id: KRY001, nama: Budi Santoso }
+                  totalHutang: 200000
+                  totalBayar: 100000
+                  saldo: 100000
+                  riwayat: []
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /hutang/{id}:
+    delete:
+      tags: [Hutang]
+      summary: Hapus transaksi hutang
+      description: Role **ADMIN** saja.
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'

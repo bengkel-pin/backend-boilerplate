@@ -4,9 +4,6 @@
     "description": "Collection API untuk backend dashboard admin IndahJaya Bangunan",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "variable": [
-    { "key": "baseUrl", "value": "http://localhost:5000/api" }
-  ],
   "auth": {
     "type": "bearer",
     "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
@@ -32,8 +29,8 @@
                 "exec": [
                   "if (pm.response.code === 200) {",
                   "  const res = pm.response.json();",
-                  "  pm.collectionVariables.set('accessToken', res.data.accessToken);",
-                  "  pm.collectionVariables.set('refreshToken', res.data.refreshToken);",
+                  "  pm.environment.set('accessToken', res.data.accessToken);",
+                  "  pm.environment.set('refreshToken', res.data.refreshToken);",
                   "  pm.test('Login berhasil', () => pm.expect(res.success).to.be.true);",
                   "}"
                 ]
@@ -67,8 +64,8 @@
                 "exec": [
                   "if (pm.response.code === 200) {",
                   "  const res = pm.response.json();",
-                  "  pm.collectionVariables.set('accessToken', res.data.accessToken);",
-                  "  pm.collectionVariables.set('refreshToken', res.data.refreshToken);",
+                  "  pm.environment.set('accessToken', res.data.accessToken);",
+                  "  pm.environment.set('refreshToken', res.data.refreshToken);",
                   "}"
                 ]
               }
@@ -123,11 +120,7 @@
           "name": "Get User by ID",
           "request": {
             "method": "GET",
-            "url": {
-              "raw": "{{baseUrl}}/users/{{userId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{userId}}"]
-            }
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] }
           }
         },
         {
@@ -139,8 +132,7 @@
                 "exec": [
                   "if (pm.response.code === 201) {",
                   "  const res = pm.response.json();",
-                  "  pm.collectionVariables.set('userId', res.data.id);",
-                  "  pm.test('User berhasil dibuat', () => pm.expect(res.success).to.be.true);",
+                  "  pm.environment.set('userId', res.data.id);",
                   "}"
                 ]
               }
@@ -165,22 +157,14 @@
               "mode": "raw",
               "raw": "{\n  \"name\": \"Budi Santoso Updated\",\n  \"role\": \"MANAGER\",\n  \"isActive\": true\n}"
             },
-            "url": {
-              "raw": "{{baseUrl}}/users/{{userId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{userId}}"]
-            }
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] }
           }
         },
         {
           "name": "Delete User",
           "request": {
             "method": "DELETE",
-            "url": {
-              "raw": "{{baseUrl}}/users/{{userId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{userId}}"]
-            }
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] }
           }
         }
       ]
@@ -213,8 +197,7 @@
                 "exec": [
                   "if (pm.response.code === 201) {",
                   "  const res = pm.response.json();",
-                  "  pm.collectionVariables.set('mediaId', res.data.id);",
-                  "  pm.test('File berhasil diupload', () => pm.expect(res.success).to.be.true);",
+                  "  pm.environment.set('mediaId', res.data.id);",
                   "}"
                 ]
               }
@@ -224,14 +207,7 @@
             "method": "POST",
             "body": {
               "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "file",
-                  "type": "file",
-                  "src": "",
-                  "description": "Pilih file (JPG/PNG/WEBP/PDF/DOC, maks 5MB)"
-                }
-              ]
+              "formdata": [{ "key": "file", "type": "file", "src": "" }]
             },
             "url": { "raw": "{{baseUrl}}/media/upload", "host": ["{{baseUrl}}"], "path": ["media", "upload"] }
           }
@@ -240,11 +216,7 @@
           "name": "Delete Media",
           "request": {
             "method": "DELETE",
-            "url": {
-              "raw": "{{baseUrl}}/media/{{mediaId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["media", "{{mediaId}}"]
-            }
+            "url": { "raw": "{{baseUrl}}/media/{{mediaId}}", "host": ["{{baseUrl}}"], "path": ["media", "{{mediaId}}"] }
           }
         }
       ]
@@ -272,6 +244,392 @@
                 { "key": "limit", "value": "20" }
               ]
             }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Karyawan",
+      "item": [
+        {
+          "name": "Get All Karyawan",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/karyawan?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["karyawan"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "status", "value": "AKTIF", "disabled": true },
+                { "key": "departemen", "value": "TOKO", "disabled": true },
+                { "key": "sistemUpah", "value": "HARIAN", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Karyawan by ID",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/karyawan/{{karyawanId}}", "host": ["{{baseUrl}}"], "path": ["karyawan", "{{karyawanId}}"] }
+          }
+        },
+        {
+          "name": "Create Karyawan",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const res = pm.response.json();",
+                  "  pm.environment.set('karyawanId', res.data.id);",
+                  "  pm.test('ID: ' + res.data.id, () => pm.expect(res.success).to.be.true);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nama\": \"Budi Santoso\",\n  \"jenisKelamin\": \"LAKI_LAKI\",\n  \"jabatan\": \"Kasir\",\n  \"nomorHp\": \"081234567890\",\n  \"noRekening\": \"1234567890\",\n  \"alamat\": \"Jl. Merdeka No. 1, Jakarta\",\n  \"sistemUpah\": \"HARIAN\",\n  \"gajiPokok\": 150000\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/karyawan", "host": ["{{baseUrl}}"], "path": ["karyawan"] }
+          }
+        },
+        {
+          "name": "Update Karyawan",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nama\": \"Budi Santoso\",\n  \"jenisKelamin\": \"LAKI_LAKI\",\n  \"jabatan\": \"Supervisor\",\n  \"nomorHp\": \"081234567890\",\n  \"noRekening\": \"1234567890\",\n  \"alamat\": \"Jl. Merdeka No. 1, Jakarta\",\n  \"sistemUpah\": \"BULANAN\",\n  \"gajiPokok\": 3000000\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/karyawan/{{karyawanId}}", "host": ["{{baseUrl}}"], "path": ["karyawan", "{{karyawanId}}"] }
+          }
+        },
+        {
+          "name": "Delete Karyawan",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/karyawan/{{karyawanId}}", "host": ["{{baseUrl}}"], "path": ["karyawan", "{{karyawanId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Riwayat Kerja",
+      "item": [
+        {
+          "name": "Get Riwayat by Karyawan",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/riwayat-kerja/karyawan/{{karyawanId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["riwayat-kerja", "karyawan", "{{karyawanId}}"]
+            }
+          }
+        },
+        {
+          "name": "Catat Masuk Kerja",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const res = pm.response.json();",
+                  "  pm.environment.set('riwayatId', res.data.id);",
+                  "  pm.test('Riwayat berhasil dicatat', () => pm.expect(res.success).to.be.true);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"karyawanId\": \"{{karyawanId}}\",\n  \"tanggalMulai\": \"2024-01-01\",\n  \"departemen\": \"TOKO\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/riwayat-kerja", "host": ["{{baseUrl}}"], "path": ["riwayat-kerja"] }
+          }
+        },
+        {
+          "name": "Catat Tanggal Keluar",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tanggalKeluar\": \"2024-06-30\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/riwayat-kerja/{{riwayatId}}", "host": ["{{baseUrl}}"], "path": ["riwayat-kerja", "{{riwayatId}}"] }
+          }
+        },
+        {
+          "name": "Hapus Riwayat",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/riwayat-kerja/{{riwayatId}}", "host": ["{{baseUrl}}"], "path": ["riwayat-kerja", "{{riwayatId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Absensi",
+      "item": [
+        {
+          "name": "Get All Absensi",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/absensi?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["absensi"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "karyawanId", "value": "{{karyawanId}}", "disabled": true },
+                { "key": "bulan", "value": "1", "disabled": true },
+                { "key": "tahun", "value": "2024", "disabled": true },
+                { "key": "status", "value": "HADIR", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Rekap Absensi Bulanan",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/absensi/rekap/{{karyawanId}}?bulan=1&tahun=2024",
+              "host": ["{{baseUrl}}"],
+              "path": ["absensi", "rekap", "{{karyawanId}}"],
+              "query": [
+                { "key": "bulan", "value": "1" },
+                { "key": "tahun", "value": "2024" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Catat Absensi - Hadir",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const res = pm.response.json();",
+                  "  pm.environment.set('absensiId', res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"karyawanId\": \"{{karyawanId}}\",\n  \"tanggal\": \"2024-01-02\",\n  \"status\": \"HADIR\",\n  \"telatMenit\": 0\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/absensi", "host": ["{{baseUrl}}"], "path": ["absensi"] }
+          }
+        },
+        {
+          "name": "Catat Absensi - Cuti",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"karyawanId\": \"{{karyawanId}}\",\n  \"tanggal\": \"2024-01-03\",\n  \"status\": \"CUTI\",\n  \"alasanKetidakhadiran\": \"Urusan keluarga\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/absensi", "host": ["{{baseUrl}}"], "path": ["absensi"] }
+          }
+        },
+        {
+          "name": "Catat Absensi - Parsial (4 jam)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"karyawanId\": \"{{karyawanId}}\",\n  \"tanggal\": \"2024-01-04\",\n  \"status\": \"PARSIAL\",\n  \"jamKerja\": 4,\n  \"alasanKetidakhadiran\": \"Izin setengah hari\",\n  \"telatMenit\": 0\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/absensi", "host": ["{{baseUrl}}"], "path": ["absensi"] }
+          }
+        },
+        {
+          "name": "Update Absensi",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"HADIR\",\n  \"telatMenit\": 15\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/absensi/{{absensiId}}", "host": ["{{baseUrl}}"], "path": ["absensi", "{{absensiId}}"] }
+          }
+        },
+        {
+          "name": "Hapus Absensi",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/absensi/{{absensiId}}", "host": ["{{baseUrl}}"], "path": ["absensi", "{{absensiId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pinjaman",
+      "item": [
+        {
+          "name": "Get All Pinjaman",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/pinjaman?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["pinjaman"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "karyawanId", "value": "{{karyawanId}}", "disabled": true },
+                { "key": "metodePembayaran", "value": "TUNAI", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Pinjaman by Karyawan",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/pinjaman/karyawan/{{karyawanId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["pinjaman", "karyawan", "{{karyawanId}}"]
+            }
+          }
+        },
+        {
+          "name": "Catat Pinjaman",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const res = pm.response.json();",
+                  "  pm.environment.set('pinjamanId', res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"karyawanId\": \"{{karyawanId}}\",\n  \"jumlah\": 500000,\n  \"alasanPeminjaman\": \"Keperluan mendesak\",\n  \"tanggal\": \"2024-01-10\",\n  \"metodePembayaran\": \"TUNAI\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/pinjaman", "host": ["{{baseUrl}}"], "path": ["pinjaman"] }
+          }
+        },
+        {
+          "name": "Hapus Pinjaman",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/pinjaman/{{pinjamanId}}", "host": ["{{baseUrl}}"], "path": ["pinjaman", "{{pinjamanId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Hutang Karyawan",
+      "item": [
+        {
+          "name": "Get All Hutang",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/hutang?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["hutang"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "karyawanId", "value": "{{karyawanId}}", "disabled": true },
+                { "key": "jenis", "value": "HUTANG", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Hutang & Saldo by Karyawan",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/hutang/karyawan/{{karyawanId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["hutang", "karyawan", "{{karyawanId}}"]
+            }
+          }
+        },
+        {
+          "name": "Tambah Hutang",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const res = pm.response.json();",
+                  "  pm.environment.set('hutangId', res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tanggal\": \"2024-01-05\",\n  \"karyawanId\": \"{{karyawanId}}\",\n  \"jenis\": \"HUTANG\",\n  \"jumlah\": 200000,\n  \"keterangan\": \"Beli semen\",\n  \"refNoNota\": \"INV-001\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/hutang", "host": ["{{baseUrl}}"], "path": ["hutang"] }
+          }
+        },
+        {
+          "name": "Bayar Hutang",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tanggal\": \"2024-01-15\",\n  \"karyawanId\": \"{{karyawanId}}\",\n  \"jenis\": \"BAYAR\",\n  \"jumlah\": 100000,\n  \"keterangan\": \"Cicilan 1\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/hutang", "host": ["{{baseUrl}}"], "path": ["hutang"] }
+          }
+        },
+        {
+          "name": "Hapus Hutang",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/hutang/{{hutangId}}", "host": ["{{baseUrl}}"], "path": ["hutang", "{{hutangId}}"] }
           }
         }
       ]

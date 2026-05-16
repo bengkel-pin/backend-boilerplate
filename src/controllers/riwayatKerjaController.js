@@ -32,7 +32,9 @@ const createRiwayat = async (req, res, next) => {
       });
     }
 
-    const data = await prisma.riwayatKerja.create({ data: { karyawanId, tanggalMulai, departemen } });
+    const data = await prisma.riwayatKerja.create({
+      data: { karyawanId, tanggalMulai: new Date(tanggalMulai), departemen },
+    });
     success(res, data, 'Riwayat kerja berhasil ditambahkan', 201);
   } catch (err) {
     next(err);
@@ -54,8 +56,8 @@ const updateRiwayat = async (req, res, next) => {
     const data = await prisma.riwayatKerja.update({
       where: { id },
       data: {
-        ...(tanggalMulai && { tanggalMulai }),
-        ...(tanggalKeluar !== undefined && { tanggalKeluar: tanggalKeluar || null }),
+        ...(tanggalMulai && { tanggalMulai: new Date(tanggalMulai) }),
+        ...(tanggalKeluar !== undefined && { tanggalKeluar: tanggalKeluar ? new Date(tanggalKeluar) : null }),
         ...(departemen && { departemen }),
       },
     });
