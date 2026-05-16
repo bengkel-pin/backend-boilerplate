@@ -4,6 +4,9 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const path = require('path');
+const fs = require('fs');
+const YAML = require('yaml');
+const swaggerUi = require('swagger-ui-express');
 
 const authRoutes = require('./src/routes/authRoutes');
 const userRoutes = require('./src/routes/userRoutes');
@@ -13,7 +16,8 @@ const { errorHandler, notFound } = require('./src/middleware/errorHandler');
 
 const app = express();
 
-app.use(helmet());
+// Swagger UI perlu dinonaktifkan CSP helmet agar asset-nya bisa load
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: process.env.FRONTEND_URL || '*', credentials: true }));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json());
@@ -21,6 +25,14 @@ app.use(express.urlencoded({ extended: true }));
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// API Docs (Swagger UI)
+const openapiSpec = YAML.parse(fs.readFileSync(path.join(__dirname, 'src/config/openapi.yaml'), 'utf8'));
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec, {
+  customSiteTitle: 'IndahJaya Bangunan API Docs',
+  customCss: '.swagger-ui .topbar { background-color: #1a56db; }',
+}));
+app.get('/api/docs.json', (req, res) => res.json(openapiSpec));
 
 // Health check
 app.get('/api/health', (req, res) => {

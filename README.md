@@ -2,6 +2,8 @@
 
 REST API untuk sistem dashboard admin IndahJaya Bangunan. Dibangun dengan Node.js, Express, Prisma ORM, dan PostgreSQL.
 
+> **API Docs:** [http://localhost:5000/api/docs](http://localhost:5000/api/docs) — tersedia setelah server dijalankan.
+
 ---
 
 ## Teknologi
