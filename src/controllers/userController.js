@@ -2,6 +2,11 @@ const bcrypt = require('bcryptjs');
 const prisma = require('../config/database');
 const { success, paginate } = require('../utils/response');
 
+const getProfile = (req, res) => {
+  const { id, name, email, role, avatar, isActive } = req.user;
+  success(res, { id, name, email, role, avatar, isActive }, 'Profil berhasil diambil');
+};
+
 const getUsers = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, search = '', role } = req.query;
@@ -84,4 +89,4 @@ const deleteUser = async (req, res, next) => {
   }
 };
 
-module.exports = { getUsers, getUserById, createUser, updateUser, deleteUser };
+module.exports = { getProfile, getUsers, getUserById, createUser, updateUser, deleteUser };
