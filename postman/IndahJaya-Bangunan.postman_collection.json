@@ -633,6 +633,93 @@
           }
         }
       ]
+    },
+    {
+      "name": "Pembayaran Gaji",
+      "item": [
+        {
+          "name": "Preview Kalkulasi Gaji",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/pembayaran-gaji/preview?karyawanId={{karyawanId}}&periodeAwal=2024-01-01&periodeAkhir=2024-01-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["pembayaran-gaji", "preview"],
+              "query": [
+                { "key": "karyawanId", "value": "{{karyawanId}}" },
+                { "key": "periodeAwal", "value": "2024-01-01" },
+                { "key": "periodeAkhir", "value": "2024-01-31" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Pembayaran Gaji",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/pembayaran-gaji?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["pembayaran-gaji"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "karyawanId", "value": "{{karyawanId}}", "disabled": true },
+                { "key": "bulan", "value": "1", "disabled": true },
+                { "key": "tahun", "value": "2024", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Detail Pembayaran Gaji",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/pembayaran-gaji/{{pembayaranId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["pembayaran-gaji", "{{pembayaranId}}"]
+            }
+          }
+        },
+        {
+          "name": "Simpan Pembayaran Gaji",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const res = pm.response.json();",
+                  "  pm.environment.set('pembayaranId', res.data.id);",
+                  "  pm.test('Pembayaran berhasil disimpan', () => pm.expect(res.success).to.be.true);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"karyawanId\": \"{{karyawanId}}\",\n  \"periodeAwal\": \"2024-01-01\",\n  \"periodeAkhir\": \"2024-01-31\",\n  \"metodeBayar\": \"TUNAI\",\n  \"tanggalBayar\": \"2024-02-01\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/pembayaran-gaji", "host": ["{{baseUrl}}"], "path": ["pembayaran-gaji"] }
+          }
+        },
+        {
+          "name": "Hapus Pembayaran Gaji",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/pembayaran-gaji/{{pembayaranId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["pembayaran-gaji", "{{pembayaranId}}"]
+            }
+          }
+        }
+      ]
     }
   ]
 }

@@ -17,6 +17,7 @@ const riwayatKerjaRoutes = require('./src/routes/riwayatKerjaRoutes');
 const absensiRoutes = require('./src/routes/absensiRoutes');
 const pinjamanRoutes = require('./src/routes/pinjamanRoutes');
 const hutangRoutes = require('./src/routes/hutangRoutes');
+const pembayaranGajiRoutes = require('./src/routes/pembayaranGajiRoutes');
 const { errorHandler, notFound } = require('./src/middleware/errorHandler');
 
 const app = express();
@@ -56,6 +57,7 @@ app.use('/api/riwayat-kerja', riwayatKerjaRoutes);
 app.use('/api/absensi', absensiRoutes);
 app.use('/api/pinjaman', pinjamanRoutes);
 app.use('/api/hutang', hutangRoutes);
+app.use('/api/pembayaran-gaji', pembayaranGajiRoutes);
 
 // Error handling
 app.use(notFound);

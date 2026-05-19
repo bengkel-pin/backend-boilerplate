@@ -46,6 +46,8 @@ tags:
     description: Pinjaman karyawan yang dipotong dari gaji
   - name: Hutang
     description: Ledger hutang karyawan (jenis Hutang / Bayar)
+  - name: Pembayaran Gaji
+    description: Kalkulasi & pencatatan pembayaran gaji karyawan
 
 components:
   securitySchemes:
@@ -313,6 +315,50 @@ components:
           type: string
           nullable: true
           example: INV-001
+
+    PembayaranGaji:
+      type: object
+      properties:
+        id:
+          type: string
+        periodeAwal:
+          type: string
+          format: date
+          example: "2024-01-01"
+        periodeAkhir:
+          type: string
+          format: date
+          example: "2024-01-31"
+        karyawanId:
+          type: string
+          example: KRY001
+        namaKaryawan:
+          type: string
+          example: Budi Santoso
+        gajiPokok:
+          type: number
+          example: 150000
+        jumlahHariKerja:
+          type: number
+          example: 26.5
+        jumlahJamKerja:
+          type: integer
+          example: 212
+        total:
+          type: number
+          example: 3975000
+        pinjaman:
+          type: number
+          example: 500000
+        sisa:
+          type: number
+          example: 3475000
+        metodeBayar:
+          type: string
+          enum: [TUNAI, TRANSFER]
+        tanggalBayar:
+          type: string
+          format: date
 
   responses:
     Unauthorized:
@@ -1411,6 +1457,147 @@ paths:
       description: Role **ADMIN** saja.
       parameters:
         - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─── Pembayaran Gaji ─────────────────────────────────────────────
+
+  /pembayaran-gaji/preview:
+    get:
+      tags: [Pembayaran Gaji]
+      summary: Preview kalkulasi gaji sebelum disimpan
+      description: |
+        Hitung otomatis berdasarkan absensi dan pinjaman dalam periode.
+        - **HARIAN**: gajiPokok × (totalJamKerja ÷ 8)
+        - **BULANAN**: gajiPokok tetap
+        - **Pinjaman**: total pinjaman baru dalam periode
+        - **Sisa**: Total − Pinjaman
+      parameters:
+        - { in: query, name: karyawanId, required: true, schema: { type: string }, example: KRY001 }
+        - { in: query, name: periodeAwal, required: true, schema: { type: string, format: date }, example: "2024-01-01" }
+        - { in: query, name: periodeAkhir, required: true, schema: { type: string, format: date }, example: "2024-01-31" }
+      responses:
+        '200':
+          description: Kalkulasi berhasil
+          content:
+            application/json:
+              example:
+                success: true
+                message: Kalkulasi gaji berhasil
+                data:
+                  periodeAwal: "2024-01-01"
+                  periodeAkhir: "2024-01-31"
+                  karyawanId: KRY001
+                  namaKaryawan: Budi Santoso
+                  sistemUpah: HARIAN
+                  gajiPokok: 150000
+                  jumlahHariKerja: 26.5
+                  jumlahJamKerja: 212
+                  total: 3975000
+                  pinjaman: 500000
+                  sisa: 3475000
+                  detailAbsensi:
+                    totalHadir: 26
+                    totalCuti: 1
+                    totalParsial: 1
+        '400':
+          description: Parameter wajib tidak lengkap
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /pembayaran-gaji:
+    get:
+      tags: [Pembayaran Gaji]
+      summary: Daftar pembayaran gaji
+      parameters:
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: limit, schema: { type: integer, default: 10 } }
+        - { in: query, name: karyawanId, schema: { type: string } }
+        - { in: query, name: bulan, schema: { type: integer }, example: 1 }
+        - { in: query, name: tahun, schema: { type: integer }, example: 2024 }
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [Pembayaran Gaji]
+      summary: Simpan pembayaran gaji
+      description: Total, hari kerja, jam kerja, dan pinjaman dihitung otomatis dari data absensi & pinjaman.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [karyawanId, periodeAwal, periodeAkhir, metodeBayar, tanggalBayar]
+              properties:
+                karyawanId: { type: string, example: KRY001 }
+                periodeAwal: { type: string, format: date, example: "2024-01-01" }
+                periodeAkhir: { type: string, format: date, example: "2024-01-31" }
+                metodeBayar: { type: string, enum: [TUNAI, TRANSFER] }
+                tanggalBayar: { type: string, format: date, example: "2024-02-01" }
+      responses:
+        '201':
+          description: Pembayaran gaji berhasil disimpan
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PembayaranGaji'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /pembayaran-gaji/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+
+    get:
+      tags: [Pembayaran Gaji]
+      summary: Detail slip gaji
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PembayaranGaji'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Pembayaran Gaji]
+      summary: Hapus data pembayaran gaji
+      description: Role **ADMIN** saja.
       responses:
         '200':
           description: OK

@@ -98,10 +98,11 @@ model Karyawan {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  riwayatKerja RiwayatKerja[]
-  absensi      Absensi[]
-  pinjaman     Pinjaman[]
-  hutang       HutangKaryawan[]
+  riwayatKerja    RiwayatKerja[]
+  absensi         Absensi[]
+  pinjaman        Pinjaman[]
+  hutang          HutangKaryawan[]
+  pembayaranGaji  PembayaranGaji[]
 
   @@map("karyawan")
 }
@@ -158,4 +159,25 @@ model HutangKaryawan {
   karyawan Karyawan @relation(fields: [karyawanId], references: [id], onDelete: Cascade)
 
   @@map("hutang_karyawan")
+}
+
+model PembayaranGaji {
+  id               String           @id @default(cuid())
+  periodeAwal      DateTime         @db.Date
+  periodeAkhir     DateTime         @db.Date
+  karyawanId       String
+  namaKaryawan     String
+  gajiPokok        Decimal          @db.Decimal(15, 2)
+  jumlahHariKerja  Decimal          @db.Decimal(6, 2)  // e.g. 26.50
+  jumlahJamKerja   Int
+  total            Decimal          @db.Decimal(15, 2)
+  pinjaman         Decimal          @db.Decimal(15, 2)  @default(0)
+  sisa             Decimal          @db.Decimal(15, 2)
+  metodeBayar      MetodePembayaran
+  tanggalBayar     DateTime         @db.Date
+  createdAt        DateTime         @default(now())
+
+  karyawan Karyawan @relation(fields: [karyawanId], references: [id], onDelete: Cascade)
+
+  @@map("pembayaran_gaji")
 }
